@@ -20,6 +20,8 @@ var MovingParticleFlag = false;
 var AddSegmentFlag = false;
 var StillDrawingSegment = false;
 
+var EditFlowFlag = false;
+
 var SelectedFlow;
 var SelectedFlowIndex = 0;
 
@@ -49,7 +51,7 @@ function Start() {
 }
 
 function Clear() {
-    ctx.clearRect(0,0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 class Flow {
@@ -114,20 +116,6 @@ function CloseFlowModal() {
     modal.style.display = "none";
 }
 
-function ChangeColor() {
-    var RedValue = document.getElementById("RedColor").value;
-    var GreenValue = document.getElementById("GreenColor").value;
-    var BlueValue = document.getElementById("BlueColor").value;
-    for (let index = 0; index < particles.length; index++) {
-        const element = particles[index];
-        element.color = "rgb("+RedValue+", "+GreenValue+", "+BlueValue+")";
-    }
-    for (let index = 0; index < segments.length; index++) {
-        const element = segments[index];
-        element.color = "rgb("+RedValue+", "+GreenValue+", "+BlueValue+")";
-    }
-
-}
 
 window.onclick = function(event) {
     if (event.target == modal) {
@@ -203,14 +191,13 @@ function ClickEvent(event) {
 
     if (AddSegmentFlag) {
         for (let index = 0; index < particles.length; index++) {
-            const element = particles[index];            
-            if (ParticleClicked(event, element.posX, element.posY, element.radius)) {            
+            const element = particles[index];
+            if (ParticleClicked(event, element.posX, element.posY, element.radius)) {
                 if (StillDrawingSegment == false) {
                     StartX = element.posX;
                     StartY = element.posY;
-                    StillDrawingSegment = true;       
-                }
-                else {
+                    StillDrawingSegment = true;
+                } else {
                     var NewSegment = new Segment(StartX, StartY, element.posX, element.posY);
                     segments.push(NewSegment);
                     StillDrawingSegment = false;
@@ -315,21 +302,37 @@ function AddFlow() {
     var GreenValue = document.getElementById("GreenColor").value;
     var BlueValue = document.getElementById("BlueColor").value;
     var FlowName = document.getElementById("FlowName").value;
-    var Color = "rgb("+RedValue+", "+GreenValue+", "+BlueValue+")";
+    var Color = "rgb(" + RedValue + ", " + GreenValue + ", " + BlueValue + ")";
 
-    var NewFlow = new Flow(Color, FlowName);
-    flows.push(NewFlow);
-    var Element = document.getElementById(GetCorrectElement(flows.length));
-    var ElementName = document.getElementById(GetNameElement(flows.length));
-    var ElementIcon = document.getElementById(GetIconElemnt(flows.length));
-    
-    Element.style.display = "flex";
-    ElementName.innerHTML = FlowName;
-    ElementIcon.style.backgroundColor = Color;
+    if (EditFlowFlag == false) {
+        var NewFlow = new Flow(Color, FlowName);
+        flows.push(NewFlow);
+        var Element = document.getElementById(GetCorrectElement(flows.length));
+        var ElementName = document.getElementById(GetNameElement(flows.length));
+        var ElementIcon = document.getElementById(GetIconElemnt(flows.length));
 
-    if (flows.length == 5) {
-        var AddElement = document.getElementById("ElementAdd");
-        AddElement.style.display = "none";
+        Element.style.display = "flex";
+        ElementName.innerHTML = FlowName;
+        ElementIcon.style.backgroundColor = Color;
+
+        if (flows.length == 5) {
+            var AddElement = document.getElementById("ElementAdd");
+            AddElement.style.display = "none";
+        }
+    } else {
+        var Element = document.getElementById(GetCorrectElement(SelectedFlowIndex + 1));
+        var ElementName = document.getElementById(GetNameElement(SelectedFlowIndex + 1));
+        var ElementIcon = document.getElementById(GetIconElemnt(SelectedFlowIndex + 1));
+
+        Element.style.display = "flex";
+        ElementName.innerHTML = FlowName;
+        ElementIcon.style.backgroundColor = Color;
+
+        var FlowElement = flows[SelectedFlowIndex];
+        FlowElement.color = Color;
+        FlowElement.name = FlowName;
+
+        console.log(FlowElement);
     }
     console.table(flows);
     CloseFlowModal();
@@ -339,8 +342,8 @@ function AddFlow() {
 function SwitchFlow(index) {
     console.log(SelectedFlow);
     console.log(SelectedFlowIndex);
-    var Element = document.getElementById(GetCorrectElement(index+1));
-    var PreviousElement = document.getElementById(GetCorrectElement(SelectedFlowIndex+1));
+    var Element = document.getElementById(GetCorrectElement(index + 1));
+    var PreviousElement = document.getElementById(GetCorrectElement(SelectedFlowIndex + 1));
     Element.style.backgroundColor = "silver";
     PreviousElement.style.backgroundColor = "white";
     SelectedFlowIndex = index;
@@ -348,4 +351,20 @@ function SwitchFlow(index) {
 
     console.log(SelectedFlowIndex);
     console.log(SelectedFlow);
+}
+
+function EditFlow(element) {
+    EditFlowFlag = true;
+    OpenFlowModal();
+
+}
+
+function DeleteFlow(element) {
+    console.table(flows);
+    console.log("Delete n°" + element);
+    var Element = document.getElementById(GetCorrectElement(element));
+    Element.style.display = "none";
+    SelectedFlowIndex = 0;
+    delete flows[element - 1];
+    console.table(flows);
 }
