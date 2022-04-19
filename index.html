@@ -1,15 +1,79 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>FlowChart</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
-    <canvas id="canvas" width="500" height="1000" style="border: 1px solid #000000;">
+<body onload="Start()">
+    <canvas id="canvas" width="600" height="800" style="border: 1px solid #000000;">
         Your browser does not support the HTML canvas.
     </canvas>
+    <div class="interface">
+        <button onclick="EnableAddCircle()" id="addCircle">Add Circle</button>
+        <button onclick="DisableAddCircle()" id="stopAddCircle">Stop Adding Circle</button><br><br>
+        <button onclick="EnableDrawSegment()" id="addSegment">Draw Segment</button>
+        <button onclick="DisableDrawSegment()" id="stopAddSegment">Stop Draw Segment</button>
+    </div>
 
+    <br>
+
+<div id="FlowList">
+    <div class="FlowElement" id="Element1" onclick="SwitchFlow(0)">
+        <p id="NameElement1">Default</p>
+        <div class="FlowIcon">
+            <div class="Cercle" id="IconElement1"></div>
+        </div>
+    </div>
+    <div class="FlowElement" id="Element2" onclick="SwitchFlow(1)">
+        <p id="NameElement2">Default</p>
+        <div class="FlowIcon">
+            <div class="Cercle" id="IconElement2"></div>
+        </div>
+    </div>
+    <div class="FlowElement" id="Element3" onclick="SwitchFlow(2)">
+        <p id="NameElement3">Default</p>
+        <div class="FlowIcon">
+            <div class="Cercle" id="IconElement3"></div>
+        </div>
+    </div>
+    <div class="FlowElement" id="Element4" onclick="SwitchFlow(3)">
+        <p id="NameElement4">Default</p>
+        <div class="FlowIcon">
+            <div class="Cercle" id="IconElement4"></div>
+        </div>
+    </div>
+    <div class="FlowElement" id="Element5" onclick="SwitchFlow(4)">
+        <p id="NameElement5">Default</p>
+        <div class="FlowIcon">
+            <div class="Cercle" id="IconElement5"></div>
+        </div>
+    </div>
+
+
+    <div class="FlowElement" id="ElementAdd">
+        <span class="addFlow" onclick="OpenFlowModal()">&oplus;</span>
+    </div>
+</div>
+    <div id="FlowModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="CloseFlowModal()">&times;</span>
+            <label for="FlowName">Flow Name : </label>
+            <input type="text" id="FlowName" value="Flow">
+            <br><br>
+            <div class="color">
+                <label for="RedColor">R :</label>
+                <input type="number" id="RedColor" min="0" max="255" value="0">
+                <label for="GreenColor">G :</label>
+                <input type="number" id="GreenColor" min="0" max="255" value="0">
+                <label for="BlueColor">B :</label>
+                <input type="number" id="BlueColor" min="0" max="255" value="0">
+                <button id="ChangeColorButton" onclick="AddFlow()">Add Flow</button>
+            </div>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
+
 </html>
