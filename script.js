@@ -2,12 +2,17 @@ var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 var modal = document.getElementById("FlowModal");
 canvas.addEventListener("click", ClickEvent);
+canvas.addEventListener("mousemove", UpdateMousePosition);
+canvas.addEventListener("mousedown", MouseDownEvent);
 
 var AddCircleBtn = document.getElementById("addCircle");
 var StopAddCircleBtn = document.getElementById("stopAddCircle");
 
 var AddSegmentBtn = document.getElementById("addSegment");
 var StopAddSegmentBtn = document.getElementById("stopAddSegment");
+
+var LoadFileBtn = document.getElementById("loadFile");
+LoadFileBtn.addEventListener('change', LoadFile);
 
 var flows = [];
 var particles = [];
@@ -22,17 +27,35 @@ var StillDrawingSegment = false;
 
 var EditFlowFlag = false;
 
+var MoveCircleFlag = false;
+
 var SelectedFlow;
 var SelectedFlowIndex = 0;
+
+var MouseX;
+var MouseY;
+
+var SelectedParticle;
+
+function UpdateMousePosition(event) {
+    MouseX= event.clientX;
+    MouseY = event.clientY;
+}
+
+function MouseDownEvent(params) {
+    if (MoveCircleFlag) {
+        console.log("dragging");
+    }
+}
 
 function Start() {
     setInterval(updateArea, 20);
     StopAddCircleBtn.style.display = "none";
     StopAddSegmentBtn.style.display = "none";
 
-    var DefaultColor = "yellow";
+    var DefaultColor = "black";
     var DefaultName = "Default";
-    var DefaultFlow = new Flow(DefaultColor, DefaultName);
+    var DefaultFlow = new Flow(DefaultColor, DefaultName, [], []);
 
     var Element = document.getElementById("Element1");
     var ElementName = document.getElementById("NameElement1");
@@ -55,8 +78,9 @@ function Clear() {
 }
 
 class Flow {
-    constructor(color, name) {
-        this.particles = [];
+    constructor(color, name, particles, segments) {
+        this.particles = particles;
+        this.segments = segments;
         this.color = color;
         this.name = name;
     }
@@ -67,11 +91,11 @@ function getCurrentFlow(element) {
 }
 
 class Particle {
-    constructor(positionX, positionY) {
+    constructor(positionX, positionY, color, radius) {
         this.posX = positionX;
         this.posY = positionY;
-        this.color = SelectedFlow.color;
-        this.radius = 20;
+        this.color = color;
+        this.radius = radius;
     }
 
     draw() {
@@ -117,7 +141,7 @@ function CloseFlowModal() {
 }
 
 
-window.onclick = function(event) {
+window.onclick = function (event) {
     if (event.target == modal) {
         modal.style.display = "none";
     }
@@ -129,6 +153,11 @@ function ParticleClicked(event, x, y, width) {
     if ((CurrentX < x + width) && (CurrentX > x - width)) {
         if ((CurrentY < y + width) && (CurrentY > y - width)) {
             console.log("Clicked");
+
+            if (MoveCircleFlag == true) {
+                SelectedParticle = particles.find((e) => ((e.posX == x) && (e.posY == y)));
+                console.log(SelectedParticle);
+            }
             return true;
         }
     }
@@ -149,19 +178,20 @@ function NoSuperposed(event, x, y, width) {
 }
 
 class Segment {
-    constructor(startX, startY, endX, endY) {
+    constructor(startX, startY, endX, endY, color, width) {
         this.startX = startX;
         this.startY = startY;
         this.endX = endX;
         this.endY = endY;
-        this.color = SelectedFlow.color;
-        this.width = 5;
+        this.color = color;
+        this.width = width;
     }
 
     draw() {
         ctx.beginPath();
         ctx.moveTo(this.startX, this.startY);
         ctx.lineTo(this.endX, this.endY);
+        ctx.setLineDash([]);
         ctx.strokeStyle = this.color;
         ctx.lineWidth = this.width;
         ctx.stroke();
@@ -175,7 +205,7 @@ function ClickEvent(event) {
     var x = event.clientX;
     var y = event.clientY;
     if (AddCircleFlag) {
-        var NewParticle = new Particle(x, y);
+        var NewParticle = new Particle(x, y, SelectedFlow.color, 20);
         if (particles.length >= 1) {
             for (let index = 0; index < particles.length; index++) {
                 const element = particles[index];
@@ -186,6 +216,9 @@ function ClickEvent(event) {
             }
         }
         particles.push(NewParticle);
+        SelectedFlow.particles.push(NewParticle);
+        console.table(SelectedFlow.particles);
+        console.log("General particles");
         console.table(particles);
     }
 
@@ -198,8 +231,9 @@ function ClickEvent(event) {
                     StartY = element.posY;
                     StillDrawingSegment = true;
                 } else {
-                    var NewSegment = new Segment(StartX, StartY, element.posX, element.posY);
+                    var NewSegment = new Segment(StartX, StartY, element.posX, element.posY, SelectedFlow.color, 5);
                     segments.push(NewSegment);
+                    SelectedFlow.segments.push(NewSegment);
                     StillDrawingSegment = false;
                     StartX = 0;
                     StartY = 0;
@@ -208,10 +242,20 @@ function ClickEvent(event) {
         }
 
     }
+
+    if(MoveCircleFlag)
+    {
+        for (let index = 0; index < particles.length; index++) {
+            const element = particles[index];
+            if (ParticleClicked(event, element.posX, element.posY, element.radius)) {
+                console.log("Clicked");
+            }
+        }
+    }
 }
 
 
-function updateArea() {
+function updateArea(event) {
     Clear();
     for (let index = 0; index < segments.length; index++) {
         const element = segments[index];
@@ -221,6 +265,88 @@ function updateArea() {
         const element = particles[index];
         element.draw();
     }
+    if(StillDrawingSegment){
+        ctx.beginPath();
+        ctx.moveTo(StartX, StartY);
+        ctx.lineTo(MouseX, MouseY);
+        ctx.setLineDash([5, 15]);
+        ctx.stroke();
+    }
+
+    // console.log("SelectedIndex : " + SelectedFlowIndex);
+
+}
+
+function SaveFile(params) {
+    const gigArray = [];
+    gigArray[0] = flows;
+    gigArray[1] = particles;
+    gigArray[2] = segments;
+    var a = document.createElement("a");
+    const myJSONstring = JSON.stringify(flows, null, 2);
+
+    const JSONstringGiga = JSON.stringify(gigArray, null, 2);
+    // const myJSONstring2 = JSON.stringify(segments);
+    a.href = window.URL.createObjectURL(new Blob([myJSONstring], { type: "text/plain" }));
+    // a.href = window.URL.createObjectURL(new Blob(["Segments "+myJSONstring2], {type: "text/plain"}));
+    a.download = "test.fs";
+    a.click();
+}
+
+function LoadFile(event) {
+    const fileList = event.target.files;
+    const reader = new FileReader();
+    reader.readAsText(fileList[0]);
+    reader.onload = function (event) {
+        console.log(reader.result);
+        const Jsonresult = JSON.parse(reader.result);
+
+        console.table(Jsonresult);
+        for (let index = 0; index < Jsonresult.length; index++) {
+            const element = Jsonresult[index];
+
+            var tempoParticles = [];
+
+            var tempoSegments = [];
+            
+            for (let i = 0; i < element.segments.length; i++) {
+                const particle = element.segments[i];
+                const newElement = new Segment(particle.startX, particle.startY, particle.endX, particle.endY, particle.color, particle.width);
+                particles.push(newElement);
+                tempoSegments.push(newElement);
+            }
+            for (let i = 0; i < element.particles.length; i++) {
+                const particle = element.particles[i];
+                const newElement = new Particle(particle.posX, particle.posY, particle.color, particle.radius);
+                particles.push(newElement);
+                tempoParticles.push(newElement);
+            }
+
+            const newFlow = new Flow(element.color, element.name, tempoParticles, tempoSegments);
+            if (index == 0) {
+                flows[0] = newFlow;
+            }
+            else {
+                flows.push(newFlow);
+            }
+
+            var Element = document.getElementById(GetCorrectElement(flows.length));
+            var ElementName = document.getElementById(GetNameElement(flows.length));
+            var ElementIcon = document.getElementById(GetIconElemnt(flows.length));
+    
+            Element.style.display = "flex";
+            ElementName.innerHTML = element.name;
+            ElementIcon.style.backgroundColor = element.color;
+    
+            if (flows.length == 5) {
+                var AddElement = document.getElementById("ElementAdd");
+                AddElement.style.display = "none";
+            }
+           
+        }
+
+        console.table(flows);
+    };
 
 }
 
@@ -305,7 +431,7 @@ function AddFlow() {
     var Color = "rgb(" + RedValue + ", " + GreenValue + ", " + BlueValue + ")";
 
     if (EditFlowFlag == false) {
-        var NewFlow = new Flow(Color, FlowName);
+        var NewFlow = new Flow(Color, FlowName, [], []);
         flows.push(NewFlow);
         var Element = document.getElementById(GetCorrectElement(flows.length));
         var ElementName = document.getElementById(GetNameElement(flows.length));
@@ -327,12 +453,22 @@ function AddFlow() {
         Element.style.display = "flex";
         ElementName.innerHTML = FlowName;
         ElementIcon.style.backgroundColor = Color;
+        Element.style.backgroundColor = "silver";
 
         var FlowElement = flows[SelectedFlowIndex];
         FlowElement.color = Color;
         FlowElement.name = FlowName;
 
-        console.log(FlowElement);
+        for (let index = 0; index < SelectedFlow.particles.length; index++) {
+            const element = SelectedFlow.particles[index];
+            element.color = Color;
+        }
+
+        for (let index = 0; index < SelectedFlow.segments.length; index++) {
+            const element = SelectedFlow.segments[index];
+            element.color = Color;
+        }
+        EditFlowFlag = false;
     }
     console.table(flows);
     CloseFlowModal();
@@ -367,4 +503,12 @@ function DeleteFlow(element) {
     SelectedFlowIndex = 0;
     delete flows[element - 1];
     console.table(flows);
+}
+
+function MoveCircle(params) {
+    MoveCircleFlag = true;
+}
+
+function StopMoveCircle(params) {
+    MoveCircleFlag = false;
 }
